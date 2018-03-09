@@ -1,0 +1,106 @@
+
+\documentclass[a4paper,12pt]{article}
+
+
+%\usepackage[spanish,activeacute]{babel} 
+\usepackage[utf8]{inputenc} 
+\usepackage{latexsym,amsfonts,amsmath,mathrsfs,amssymb}
+\usepackage{verbatim}
+\usepackage{fancyvrb}
+\usepackage{graphicx}
+\usepackage{makeidx}        
+\usepackage{multicol}        
+
+
+
+\author{Pedro Parrado Rodríguez\\* {\small PhD}}
+
+
+\title{{\bf{Memory}}} 
+
+% La fecha de entrega del informe y el número de la versión (1ª, 2ª, 3ª,..)
+\date{{\scriptsize }}
+\oddsidemargin0cm
+\textwidth16cm
+
+
+% Comenzamos el documento 
+%jbg%\usepackage{Sweave}
+\begin{document}
+
+% Pone el título que hemos introducido arriba
+\maketitle
+
+\tableofcontents
+\newpage
+
+
+%\chapter{First Year}
+\section{Warm up}
+\subsection{Lookup tables}
+\subsection{MonteCarlo simulations with Lookup tables}
+\section{Surface Code}
+\subsection{MLE Decoder}
+\subsection{MonteCarlo simulation}
+\subsection{Measurement errors Decoder}
+\subsection{MonteCarlo simulation}
+
+\section{Color Code}
+\subsection{Rescaling decoder}
+\subsubsection{Outline of the decoder}
+
+\begin{enumerate}
+\item Read the Syndrome from the errors in the qubits.
+\item Assign an initial splitting (or initial split probabilities).
+\item Update the splittings (or the split probabilities) until convergence.
+\item Decode the cells independently according to the splitting from the previous step.
+\item Create the new rescaled code, and assign to each logical qubit the probability of a logical error in the cell.
+\item Apply the decoder again, until the size of the code is small enough to apply a complete lookuptable.
+\item Apply the corrections of the higher levels to the lower ones.
+
+
+\end{enumerate}
+
+\subsubsection{Hard splitting method}
+This algorithm for splitting is based on changing each individual splitting to a better one asuming the others are constant, until convergence. Therefore, the core of the algorithm is to compute the probability of a given splitting:
+
+\begin{equation}
+p(s_0^u|s_1s_2s_1's_2')=\frac{p(s_0^u|s_1s_2)p(s_0^l|s_1's_2')}{p(s_0^u|s_1s_2)p(s_0^l|s_1's_2')+[1-p(s_0^u|s_1s_2)][1-p(s_0^l|s_1's_2']}
+\end{equation}
+
+
+\begin{equation}
+p(s_0^u|s_1s_2)=\frac{p(s_0^us_1s_2)}{p(s_0^u=1,s_1s_2)+p(s_0^u=0,s_1s_2)}
+\end{equation}
+
+
+
+
+% IMAGEN
+
+%\begin{figure}[ht!]
+%\begin{center}
+%\includegraphics[height=90mm]{IMAGEN.png}
+%\end{center}
+%\end{figure}
+%
+
+
+
+%  TABLA
+
+%\begin{table}[h]
+%\begin{center}
+%\begin{tabular}{|c|c|c|c|c|c|c|}
+%\hline
+%$		$&$		$&$		$&$		$&$		$&$		$&$		$\\
+%\hline
+%\end{tabular}
+%\end{center}
+%\end{table}
+
+
+
+
+
+\end{document}
