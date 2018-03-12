@@ -38,7 +38,26 @@
 %\chapter{First Year}
 \section{Warm up}
 \subsection{Lookup tables}
+A lookup table is the simplest decoder. It is a table in which we have the correction to apply for every syndrome. 
+
+To generate the lookup table for the simplest codes, I have explored all possible combinations of up to 5 errors. Then for each error combination, I find the syndrome that it generates, and I add it to the lookuptable if there is no other error configuration for that syndrome with less errors (meaning, we only keep the error configurations with the minimum weight).
+
+Lookup tables are probably the fastest decoders, as they take just one step to decode a syndrome. The problem comes at generating them, as the size of the table grows exponentially with the number of stabilizers ($2^N$), and both filling that table and storing it becomes impossible after increasing the system size just a bit. 
+
+
 \subsection{MonteCarlo simulations with Lookup tables}
+
+To check the efficiency of the lookuptables, I have run some MonteCarlo simulations. The simulation works with the following steps:
+\begin{enumerate}
+\item First, we generate an error configuration by throwing errors at each qubit with probability $p$. For each error appearing in the code, we apply a pauli operator $X$, $Y$ or $Z$ with probability $1/3$.
+\item Second, we measure the syndrome for the system with that error configuration.
+\item Then, we apply the correction from the lookuptable for that syndrome.
+\item Finally, we check the combination of the error and our correction, to see if there is a logical error or not in the final result.
+\end{enumerate}
+
+From each of those simulations we get either a 1 in case of logical error, or a 0 in case of a proper correction. We then repeat this simulation several times (of the order of $10^4$ at least) to find the probability of logical error, and we compute that probability for different values of $p$ (the probability of an error in a single qubit) to find the behavior of the probability of logical error, and to find the threshold (when $p_{Logical\backspace error}=p_{error\backspace in \backspace a \backspace qubit}$).
+
+
 \section{Surface Code}
 \subsection{MLE Decoder}
 \subsection{MonteCarlo simulation}
