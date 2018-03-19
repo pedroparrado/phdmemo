@@ -181,6 +181,7 @@ The decoding of a single cell of four qubits is simple. We have 3 values for the
 \begin{table}
 \begin{center}
 \begin{tabular}{|ccc|c|c|}
+
 \hline
 $s_0$&$s_1$	&$s_2$&Correction&Correction + Log. Operator\\
 \hline
@@ -205,6 +206,33 @@ After choosing the best option, the error probability of the renormalized cell i
 \begin{equation}
 p_{err}=\frac{p(e+\hat{X})}{p(e)+p(e+\hat{X})}
 \end{equation}
+
+\subsubsection{Decoder for the 18 qubit case}
+
+After each rescaling, we reduce the number of qubits by a factor of 4. In each of those processes, we simply decode groups of 4 cells and generate a reduced version of the codes. This process goes on until we reach a system size small enough to decode the entire code. That point is the 18 qubit case, and in this section we are going to see a couple of ways of decoding that final state.\\
+
+The decoding process consists in using a lookup table. For the syndrome that we find in the code, we check in the table the possible error configurations consistent with that error configurations. Then, from there, we decide which correction we should apply. If the probability of error of every qubit was the same, we could have simply one option in the lookuptable for each syndrome, and then apply that one. However, as the rescaling procedure assigns different error probabilities to each cell after the rescaling, we need to take that into account. Therefore, this decoding procedure consists of 2 steps: First, the generation of the lookuptable, which only needs to be made once before using any decoder, and can be stored in a file; and second, the selection of the appropiate correction from the lookuptable for a given syndrome and set of error probabilities of the qubits.\\
+
+The generation of the lookuptable is simple, but before explaining how it is generated, let us clarify how it is supposed to work. The table is a list of sets: the index of the table corresponds to the syndrome, and the set which is stored in that position of the table is the set of error configurations consistent with that particular syndrome. To put an example, lets say that, from the 9 stabilizers $S_i,$ $i=1,...9$, we have measured an excitation on $S_7$. We can write that state in binary, by assigning a 0 to nonexcited stabilizers and a 1 to excited ones: 
+$$S_0S_1S_2S_3S_4S_5S_6S_7S_8=000000010$$
+
+We can read that as a number in binary, which corresponds to number 3. Therefore, if we measure that syndrome, we will check the position 3 in our lookuptable. And, in that position of the list, we will find a set of the possible error configurations consistent with that syndrome in particular. To indentify the error configurations, we will also write them in binary (1's for the qubits with errors, and 0's for the rest), such that an error configuration consisting in errors in the qubits 2,3 and 5 would be written as:
+$$E=001101000000000000$$
+
+
+Now that we know how to read the lookuptable, let us see how to generate it: we generate all $2^18$ possible error configurations, by simply generating all binary numbers from 0 to $2^18$. Then, for each error configuration, we compute the syndrome that will be obtained from that error, which leads us to a position on the list (our lookup table, which starts being empty). We add the current error configuration to the set in that position in the lookuptable, and we keep exploring error configurations. After having explored all error configurations, we have the entire lookuptable ready to use. \\
+
+It is important to note that, in the $2^9$ (9 is the number of stabilizers in the 18 qubit code) positions in the lookuptable, the distribution of errors in the sets is not even. That is due to the fact that from the 9 stabilizers, only 7 are independent.  Therefore, we will have some positions in the table for which we will have no error configurations, because those syndromes are incompatible with the model. And, for the rest of them (we will have exactly $2^7$ positions with nonempty sets), we will have $2^11$ different error configurations in each set. The reason for that is that we can always apply any combination of the stabilizers and the logical operators to the system and we will end up with the same syndrome. That makes $2^7\cdot 2^4=2^11$ combinations for each syndrome.\\
+
+Once we have the lookuptable, we need to be able to extract from it the correction that we should apply. The simplest way to do this is to find the error configuration with the maximum error probability. As we have the error probability for each qubit, what we do is to compute for each of the $2^11$ error configurations that we find in the lookuptable for the given syndrome the correspondent probability. That probability is the product of a factor of either $p_i$ or $(1-p_i)$ for each qubit if it has an error or not. Then, we simply need to find the maximum of that error probability, and apply that correction. This would be a MLE decoder (maximum likelihood error).\\
+
+However, our goal with the error correction procedure is not only to return the system to the codespace, but also to correct the logical errors. Therefore, we could try to improve the procedure by computing, instead of the error configuration with the maximum likelyhood, the homology class with the most likelyhood. That means, computing the likelyhood of any case with no logical operators applied, with one of them, 2 of them, etc, and then apply the correction according to which of those scenarios is the most probable.
+
+For this process of error correction, we need a new and improved lookuptable, in which for each syndrome we will have not one, but $2^4$ different sets (the different combinations of the 4 logical operators). Each of those sets will correspond to one of the homology classes, and the decoder will have to compute the probability of each of those clases by adding the probabilities of each of those configurations. Then, we will apply the best correction from the best homology class. Let us see how to generate that improved lookuptable:
+
+First of all, we will start with the information already available from the first lookuptable. For each non-empty position in the first lookuptable, we will pick just one of the error configurations (the rest are equivalent, either up to stabilizers or by applying some set of logical operators). That configuration, $E_0$, will be our starting point to fill the $2^4$ sets in that position of the improved lookuptable. By applying the $2^7$ possible combinations of stabilizers, we will fill the first set. Then, we will apply one of the $2^4$ logical operator combinations (For example, $X_{L1}$) to $E_0$, and fill the set by applying again the $2^7$ combinations of stabilizers to that new starting combination $\{X_L\}E_0$. After applying all $2^4$ combinations of Logical operators, all the sets for that syndrome will be filled, and we can continue with the next non-empty position in the lookup table.\\
+
+Although theoretically this second method should give a higher probability of success (understood as not having applyed any logical operator after the error correction), if the error probability of all qubits are equal, the monte-carlo simulations reveal an equal probability of success for both methods.
 
 % IMAGEN
 
