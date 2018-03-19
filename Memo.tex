@@ -88,11 +88,25 @@ The way we are going to do this is by Monte-Carlo simulations.  By simulating er
 
 
 \subsection{Measurement errors Decoder}
+Up to this point, we have assumed that we can measure the syndromes reliably. However, that is not the case for a real experiment, and there is an error probability for a syndrome measure as well, which we will call $q$ (remember that $p$ is the error probability of a single qubit). Therefore, we will need to repeat the measurements several times in order to improve the probability of success of our decoder.\\
+
+In general, for a code of size $L$ we will measure the syndromes $L$ times as well. That will transform our 2 dimensional graph into a 3D graph, where the vertical direction corresponds now to time. Vertex correspond to stabilizer measurement values, horizontal links to error in the qubits, and vertical links to errors in a syndrome measurement.\\
+
+In the 2D version, we added nodes to that graph for the excitations of the stabilizers, and our decoder solved the problem by finding the Min. Weight Perfect matching that linked every node in that graph. We can make that algorithm work for the 3D case as well, if we include a small modification. Here, instead of adding nodes to the graph for the excitations of the stabilizers, we will add them in a different way: the nodes in the 3D graph correspond to the stabilizer measurements that are different from the measurement of the same stabilizer in the previous step.\\
+For example, for a given stabilizer, if we measure in 6 different time-steps the following results: $+1,-1,-1,-1,+1,+1$, we will add 2 nodes to the graph for that stabilizer: one in the second time-step, and another one in the last time-step, because those were the points at which the syndrome changed from the previous step.\\
+
+Therefore, this new perfect matching in the 3D graph will find the configuration with the minimum amount of errors, both qubit and measurement errors, compatible with the syndrome measurements. However, if the probability of error in the qubits is different to the probability of error in measurements, we have to assign different weights to the vertical and horizontal links. Those weights will be:
+$$\log\left(\frac{1-p}{p}\right),\quad\quad \log\left(\frac{1-q}{q}\right).$$
+
+We can introduce those weights into the MWPM algorithm, so that we find the most probable error configuration.
 \subsection{MonteCarlo simulation}
 \newpage
 
 \section{Color Code}
 \subsection{Rescaling decoder}
+This decoder is based on dividing the code in small groups of qubits (4 in our case). Then, decode those small groups of qubits, and assing a new qubit for each group. This process will effectively reduce the size of the code. If we apply this method iteratively, we can keep reducing the size of the code until it is small enough to be decoded with a lookuptable. At that point, we can translate the correction in the higher levels of the rescaling procedure to the lower levels, until we have again the entire code, and the correction associated with it.
+
+
 \subsubsection{Outline of the decoder}
 
 \begin{enumerate}
@@ -202,7 +216,7 @@ $s_0$&$s_1$	&$s_2$&Correction&Correction + Log. Operator\\
 We can use the lookup table to compute the probability of each of the 2 possible corrections, knowing the probability of error of each individual qubit (each qubit contributes with its $p_{err}$, or $1-p_{err}$).
 
 
-After choosing the best option, the error probability of the renormalized cell is the probability of choosing the other option. In other words, the probability of applying also the logical operator ($\hat{X}$), which will be the operation that we will apply if we decide to apply a correction in the next step:
+After choosing the best option, the error probability of the renormalized cell is the probability of  the other option that we have rejected. In other words, the probability of applying also the logical operator ($\hat{X}$), which will be the operation that we will apply if we decide to apply a correction in the next step:
 \begin{equation}
 p_{err}=\frac{p(e+\hat{X})}{p(e)+p(e+\hat{X})}
 \end{equation}
