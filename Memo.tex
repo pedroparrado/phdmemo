@@ -1,4 +1,5 @@
 
+
 \documentclass[a4paper,12pt]{article}
 
 
@@ -56,12 +57,39 @@ To check the efficiency of the lookuptables, I have run some MonteCarlo simulati
 \end{enumerate}
 
 From each of those simulations we get either a 1 in case of logical error, or a 0 in case of a proper correction. We then repeat this simulation several times (of the order of $10^4$ at least) to find the probability of logical error, and we compute that probability for different values of $p$ (the probability of an error in a single qubit) to find the behavior of the probability of logical error, and to find the threshold (when $p_{Logical\quad error}=p_{error\quad in \quad a \quad qubit}$).
+\newpage
 
 \section{Surface Code}
+
+The surface code is an algorithm to encode quantum information in several physical qubits. It is a stabilizer code, in which we have the qubits arranged in the edges of a square lattice, the $Z$ stabilizers in the faces (acting over the 4 qubits on the sides), and the $X$ stabilizers in the sites (acting also over the 4 qubits corresponding to the edges that cross that site). 
+
+The surface code corresponds to the family of topological codes. It can be encoded as a toric code, if we are allowed to introduce periodic boundary conditions. In that case, we encode 2 logical qubits, and its logical operators are vertical and horizontal chains of pauli operators. Otherwise, we can use rough and smooth boundaries to use the code without periodic boundary conditions.  In that case, we only encode one logical qubit, and the logical operators are also chains of pauli operators, that go from smooth - smooth borders for the $X_L$ and from rough to rough borders for the $Z_L$.
+
+As the stabilizers are either formed of only $X$ or $Z$ operators, it is a CSS code, so we can focus on just one of the 2 for the rest of the chapter.
+
 \subsection{MLE Decoder}
+
+In the surface code, an error produces two excitations of stabilizer measurements, so they are easy to detect. However, when we have a chain of errors, that only excites 2 stabilizers, one at the beginning and one at the end of the chain. That makes it more difficult to find the error, when we have several excitations in the code.  The good thing is that error chains of the same topological class are equivalent up to stabilizers, so the goal of a decoder would be to find the most probable homology class for a given syndrome. That problem, though, is too hard to solve, but we can still do a very good approximation by finding the Most Likely Error (MLE Decoder).
+
+As the error chains generate  pairs of excitations, the way the decoder works is by finding the minimum weight perfect matching of the syndrome. To do that, we use the Blossom algorithm, from a C implementation made by Kolmogorov.
+
+
 \subsection{MonteCarlo simulation}
+
+Once we have the decoder working, our goal is to find the threshold of the surface code. This means, finding the critical value of $p_c$ such that, below that value, we can improve the precision of the code as much as we want by increasing the code size.
+
+The way we are going to do this is by Monte-Carlo simulations.  By simulating error configurations for different values of $p$, we can compute an approximation to the probability of logical error, counting the percentage of cases in which after the correction there is a logical error in the code. Having this tool, we can compute the logical error probability around the critical point for different system sizes. Then, we can do a multiparameter fit to find the value of the critical point:
+
+\begin{figure}[ht!]
+\begin{center}
+%\includegraphics[height=90mm]{thresholdSurfCode.png}
+\end{center}
+\end{figure}
+
+
 \subsection{Measurement errors Decoder}
 \subsection{MonteCarlo simulation}
+\newpage
 
 \section{Color Code}
 \subsection{Rescaling decoder}
