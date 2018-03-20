@@ -78,7 +78,11 @@ As the error chains generate  pairs of excitations, the way the decoder works is
 
 Once we have the decoder working, our goal is to find the threshold of the surface code. This means, finding the critical value of $p_c$ such that, below that value, we can improve the precision of the code as much as we want by increasing the code size.
 
-The way we are going to do this is by Monte-Carlo simulations.  By simulating error configurations for different values of $p$, we can compute an approximation to the probability of logical error, counting the percentage of cases in which after the correction there is a logical error in the code. Having this tool, we can compute the logical error probability around the critical point for different system sizes. Then, we can do a multiparameter fit to find the value of the critical point:
+The way we are going to do this is by Monte-Carlo simulations.  By simulating error configurations for different values of $p$, we can compute an approximation to the probability of logical error, counting the percentage of cases in which after the correction there is a logical error in the code. Having this tool, we can compute the logical error probability around the critical point for different system sizes. The curves for each system size should cross each other at the critical point. Then, we can do a multiparameter fit to find the value of the critical point:
+
+\begin{equation}
+p_{LE}=A+B(p-p_c)L^{1/\nu}
+\end{equation}
 
 \begin{figure}[ht!]
 \begin{center}
@@ -99,7 +103,14 @@ Therefore, this new perfect matching in the 3D graph will find the configuration
 $$\log\left(\frac{1-p}{p}\right),\quad\quad \log\left(\frac{1-q}{q}\right).$$
 
 We can introduce those weights into the MWPM algorithm, so that we find the most probable error configuration.
+
+
+
+
 \subsection{MonteCarlo simulation}
+As in the 2D case, we want to find the value of the critical point by using Monte-Carlo simulations. The simulations will give us approximations of the probability of logical error for different values of $p$, $q$ and $L$, which  will form different curves for different system sizes. Those curves should cross at the critical point. Therefore, by finding that crossing point, we will find an approximation for the critical point. To simplify, we will only consider $X$ errors, and $p=q$.
+
+
 \newpage
 
 \section{Color Code}
@@ -247,6 +258,208 @@ For this process of error correction, we need a new and improved lookuptable, in
 First of all, we will start with the information already available from the first lookuptable. For each non-empty position in the first lookuptable, we will pick just one of the error configurations (the rest are equivalent, either up to stabilizers or by applying some set of logical operators). That configuration, $E_0$, will be our starting point to fill the $2^4$ sets in that position of the improved lookuptable. By applying the $2^7$ possible combinations of stabilizers, we will fill the first set. Then, we will apply one of the $2^4$ logical operator combinations (For example, $X_{L1}$) to $E_0$, and fill the set by applying again the $2^7$ combinations of stabilizers to that new starting combination $\{X_L\}E_0$. After applying all $2^4$ combinations of Logical operators, all the sets for that syndrome will be filled, and we can continue with the next non-empty position in the lookup table.\\
 
 Although theoretically this second method should give a higher probability of success (understood as not having applyed any logical operator after the error correction), if the error probability of all qubits are equal, the monte-carlo simulations reveal an equal probability of success for both methods.
+
+
+
+\subsection{Details of the simulation}
+In this section we will specify some details of the code implementation, such as the method for indexing cells, qubits and syndromes.
+
+
+\subsubsection{Programs}
+
+The core of the simulation is contained in the file $colorCodeh.py$. It contains most of the functions and variables needed to simulate one color code. To make it work, it also needs the results from $18qlookuptable.py$, which is the program in charge of generating the lookuptable for 18 qubits (both of the ones described before). That program only needs to be run once, and it will generate the lookuptables for the main program. Those 2 files are enough to simulate the color code and apply the decoder.
+
+The other files are simply scripts to run monteCarlo simulations with the code, and to do controlled experiments with single functions from the main program for debugging purposes. 
+
+
+\subsubsection{Coordinate system}
+
+We will store the information of the qubits, the stabilizers and the cells in arrays. To find the correspondence of a certain element in the array and the element in the code, we need a way to identify the elements. In order to do that, we have 2 systems of identifying them: the index in the array, and its spatial coordinates $x$ and $y$. \\
+
+For the stabilizers, the coordinates $x$ and $y$ correspond directly to the position of the stabilizer, as they are simply dots in the dual representation of the code. For the qubits, we have them represented as triangles, and those triangles are organized in squares. Our coordinate system will identify one qubit with the $(x,y)$ coordinates of the bottom left corner of the square to which it belongs. To distinguish between the 2 qubits inside a square, we introduce a third "dimension" $z$. For the triangle in the bottom left of the square, we have $z=0$, and we have $z=1$ for the other. We identify the cells in a similar way.\\
+
+To identify the stabilizers that are in the boundary between 2 cells, we have assigned $s_0$ to the horizontal boundaries, $s_1$ to the vertical and $s_2$ to the diagonal ones.\\
+
+Finally, we need to find the equivalence between the spatial coordinates, and the index in the array. The following table has all that information \footnote{It is important to note that the divisions in the table are understood as integer divisions, without decimals. For example, $7/3=2$ in that notation. }:
+
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+&Size&Index&Coordinates\\
+\hline
+Qubit		&N 	 &$i=2x+2Ly+z$& $\begin{array}{c}
+x=(i/2)\%L\\
+y=(i/2)/L\\
+z=i\%2\\
+\end{array}$\\
+\hline
+Stabilizers	&N/2 &$i=x+Ly$	& $\begin{array}{c}
+x=i\%L\\
+y=i/L\\
+\end{array}$\\
+\hline
+Cells		&N/4 &$i=x+Ly/2+z$& $\begin{array}{c}
+x=i\%L-i\%2\\
+y=2(i/L)\\
+z=i\%2\\
+\end{array}$\\
+\hline
+\end{tabular}
+\caption{Equivalence between coordinates}
+\end{center}
+\end{table}
+
+
+Once we have the coordinates of the elements, we need to be able to relate the coordinates of a cell with the coordinates of the qubits inside of it, and the coordinates of the stabilizers in the borders of it. We can find that relation easily in spatial coordinates, and then translate it to indexes using the previous table:
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|c|cccc|cccc|}
+\hline
+&z&=&0&&z&=&1&\\
+\hline
+&$q_0$&$q_1$&$q_2$&$q_3$&$q_0$&$q_1$&$q_2$&$q_3$\\
+\hline
+x&0&0&1&0&1&1&0&1\\
+y&0&0&0&1&1&1&1&0\\
+z&0&1&0&0&1&0&1&1\\
+\hline
+\end{tabular}
+\caption{Coordinates of the qubits inside a cell, with respect to the cell coordinates. Remember that the spatial coordinates are referred to the bottom left corner of the square the qubit/cell is part of.}
+\end{center}
+\end{table}
+
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|c|ccc|ccc|}
+\hline
+&z&=&0&z&=&1\\
+\hline
+&$S_0$&$S_1$&$S_2$&$S_0$&$S_1$&$S_2$\\
+\hline
+x&1&0&1&1&2&1\\
+y&0&1&1&2&1&1\\
+\hline
+
+\end{tabular}
+\caption{Coordinates of the stabilizers in the boundaries of a cell with respect to the coordiantes of the cell. }
+\end{center}
+\end{table}
+
+\subsection{Variables in the code}
+
+In the code, the variables are contained in 2 classes:\\
+
+{\bf •Cell(i,L):} 
+
+
+This class is an utility for the main class ColorCode. It contains  the information about the indexes correspondent to the qubits and syndromes in the full code. The input to generate the cells is the index $i$ of the cell in the full code, and the size of the code $L$. This is the information we can find inside of this structure\footnote{We write $Cell[i]$ because, in the code, we will have an array of cells.}:
+\begin{enumerate}
+\item Cell[i].q=[q0,q1,q2,q3] contains the indexes(with respecto to the full code) of the four qubits inside cell i.
+\item Cell[i].s=[s0,s1,s2] contains the indexes of the 3 syndromes in the boundaries.
+\end{enumerate}
+
+
+In this way, the main code can simply call the decoder of a cell, and it will look for the appropiate values of the probabilities of error in single qubits, and the appropiate values for the syndromes s0,s1,s2, so that it can check the lookuptable.\\
+
+
+{\bf •ColorCode(m,p):}
+
+
+ The class ColorCode contains all the variables and functions needed for a simulation. The inputs to generate it are $m$, which is related to the system size by $N=18\cdot2^{2m}$; and $p$, which is the probability of error of the qubits\footnote{This probability can be changed manually after generating the code. In fact, you can assign a different error probability to each qubit in the code.}.  The main functions in the class are the one for plotting, and the one that decodes the entire code. The class also contains the information of the error, the correction, the syndrome and the splitting. Let us start by describing the main functions in the class:
+
+\begin{enumerate}
+\item noise() generates $X$ errors in the qubits with probability $p[i]$ for each qubit $i$. That probability is stored in a variable inside the class, and all $p[i]$ are initialized with the input value when you generate the code.
+
+\item syndrome() measures the syndrome that corresponds to the actual error configuration.
+
+\item  hardDecoder(softsplit=True,plotall=False) generates a correction according to the measured syndrome.The variables of the input allow to choose between the soft-hard splitting methods, and to plot the intermediate steps. The function stores the correction information in the internal variable for the correction values. The way the decoder works is the following: 0. If the code has size m=0, applies the lookuptable decoder for 18 qubits, otherwise:
+\begin{enumerate}
+\item  Applies the resplitting function (soft or hard) until convergence, or until 45 resplitting steps (first to happen).
+  \item  Decodes each of the cells using the lookuptable for 4 qubits.
+  \item  Creates a new code, with size m-1, and initializes it with the values of the corner syndromes (after applying the
+    corrections from the cells to the measurements of those syndromes), and with the new probabilities of error 
+    of the qubits according to the probability of logical error of each cell.
+
+
+\item     Applies the function code.hardDecoder() of the new code. That means this process is applied recursively unitl the
+    new code has size m=0, in which case the process finishes.
+\item     Translates the corrections in the higher levels of encoding to the lower levels, by applying the logical operator
+    of the cells in which there is a correction.
+\end{enumerate}
+
+\item plot(lattice=True,qubits=False,syndrome=True,correction=True, cells=False, error=True, splitting=False,coll='k') This functions plots the lattice. The variables in the input are there to activate the plotting of:
+\begin{enumerate}
+\item  lattice: the lattice of the code, basic for everything.
+\item    qubits: it plots a q over every qubit. It is just for debugging.
+\item    syndrome: the values of the measurements of the syndromes. Plots a yellow ball over the -1 syndromes.
+\item    correction: plots a C over the qubits with a correction.
+\item    cells: plots the cells by writing the word CELL over every qubit in a cell, with a different colour per cell.
+\item    error: plots an X over the qubits with error.
+\item    splitting: plots the current splitting, (u for split[i]=0, d otherwise, and a + or - sign for each of the half splits)
+\item    coll: is the colour used to plot the lattice.
+\end{enumerate}
+
+\end{enumerate}
+
+The rest of the functions are mostly for the decoder to work. That includes the soft and hard splitting functions, several functions to compute probabilities of splittings, and the decoder for the 18 qubit case. Apart from those, there are other functions made for the debugging and for the testing of the algorithms:
+
+\begin{enumerate}
+\item energy(): measures the value of the "energy" of the current splitting, by computing the minus logarithm of the sum
+  of the probabilities of the possible error configurations inside the cells assuming the current splitting.
+
+\item fullsplittester(printon=False): this functions computes the energy of each and every possible splitting, and returns
+the minimum of that energy, and the corresponding splitting. The input variable printon makes it print the progress
+of the program (as it takes very long for codes of the size of m=1).
+\end{enumerate}
+
+
+Now that we have covered the main functions, we can go through the different variables stored in the code:
+
+\begin{enumerate}
+\item m, N, and L are all 1D variables in the class. The first one is introduced as input, and the others follow $N=18\cdot 2^{2m}$ and $L=\sqrt{N/2}$.
+
+\item p[N] is an array that contains the error probability of each qubit. It is initialized by the input variable $p$ of the class, but can be changed at any moment. 
+
+\item e[N] is an array that, for each position $i$, contains a 1 if the qubit $i$ has an error, or a 0 otherwise.
+
+\item c[N] is similar to $e[N]$, but contains a 1 in the position $i$ if there is a correction to be applied in that qubit. The decoder functions uses this variable to store the current state of the correction.
+
+\item s$[L^2]$ is an array that contains the values of the measured stabilizers. A 1 in the position $i$ means that the stabilizer is excited. 0 otherwise. 
+
+\item split$[L^2]$ is an array that contains the information about the splittings. There are 2 possible splittings, 0 or 1, for each stabilizer. The relation between that value and the half stabilizers is shown in  table \ref{splittable}. This value is varied directly by the hard resplitting function, and by the value of the probability of each splitting choice which is varied by the soft resplitting function, depending on which one do we use. That probability of splitting is the next value in this list.
+
+\item sp$[L^2]$ is an array that contains, for each stabilizer, the probability of choosing the splitting 0 (or, equivalently, the probability $sp[i]=p(code.split[i]=0)$).
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|c|c c|c c| }
+\hline
+&$s_i=$&+1&$s_i=$&-1\\
+$s_{plit}$&$s^u_i$&$s^d_i$&$s^u_i$&$s^d_i$\\
+\hline
+0&0&0&1&0\\
+1&1&1&0&1\\
+\hline
+\end{tabular}
+\label{splittable}
+\caption{There are always 2 possible splittings for a giving stabilizer in the boundary between 2 cells. We label those 2 possibilities in the variable $s_plit$, which can have the values $0$ or $1$. The equivalence between the choice of splitting ($s_plit=1$ or 2) and the actual values of the half splittings $s^u$ and $s^d$ are displayed in this table, where $s_i$ is the value of the measurement of that stabilizer. The half splitting $s^u$ corresponds to the cell with $z=0$ and the other half splitting $s^d$ corresponds to the cell with $z=1$.}
+\end{center}
+\end{table}
+
+
+\item spt[2][2][2] contains the information from table \ref{splittable}. In other words, it returns the value of the half stabilizer given the syndrome, the split choice and the cell value of $z$. The first index refers to the syndrome value, and it is usually filled by using code.s[i]. The second is the split choice, which is usually filled by code.split[i]. The final index is the value of z, to know if we are looking for $s^u$ or $s^d$, and it is usually filled with code.cell[i].z.
+
+\item cells[N/4] contains a list of N/4 cells. Each element is an instance of class Cell, generated by code.cell[i]=Cell(i,L).
+
+\item s0s$[L^2/4]$, s1s$[L^2/4]$, and s2s$[L^2/4]$ are lists that contain the indexes of the stabilizers correspondent to horizontal, vertical and diagonal boundaries between cells, respectively.
+\end{enumerate}
+
+
+
 
 % IMAGEN
 
