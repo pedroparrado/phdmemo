@@ -115,7 +115,7 @@ As in the 2D case, we want to find the value of the critical point by using Mont
 
 \section{Color Code}
 \subsection{Rescaling decoder}
-This decoder is based on dividing the code in small groups of qubits (4 in our case). Then, decode those small groups of qubits, and assing a new qubit for each group. This process will effectively reduce the size of the code. If we apply this method iteratively, we can keep reducing the size of the code until it is small enough to be decoded with a lookuptable. At that point, we can translate the correction in the higher levels of the rescaling procedure to the lower levels, until we have again the entire code, and the correction associated with it.
+This decoder is based on dividing the code in small groups of qubits (4 in our case). Then, decode those small groups of qubits, and assing a new qubit for each group. This process will effectively reduce the size of the code. If we apply this method iteratively, we can keep reducing the size of the code until it is small enough to be decoded with a lookuptable. At that point, we can translate the correction in the higher levels of the rescaling procedure to the lower levels, until we have again the entire code, and the correction associated with it. The code can be found at: https://github.com/pedroparrado/colorCodeRescaling
 
 
 \subsubsection{Outline of the decoder}
